@@ -14,16 +14,36 @@ CradleOS is prepared for Vercel-style deployment. Configure the same environment
 
 Do not commit real Airtable tokens, Fillout secrets, API keys, or caregiver/client data.
 
+## Fillout Webhook Setup
+
+Use this endpoint for caregiver application submissions:
+
+```text
+POST /api/fillout-webhook
+```
+
+Set one shared secret in `FILLOUT_WEBHOOK_SECRET`, then configure Fillout to send the same value in either `x-fillout-webhook-secret` or `authorization: Bearer <secret>`.
+
+The payload must include:
+
+- Fillout submission id: `submissionId`, `submission_id`, `responseId`, or `id`.
+- Caregiver Airtable record id: `caregiverRecordId`, `caregiver_record_id`, `airtableRecordId`, `airtable_record_id`, `recordId`, or `record_id`.
+- Reference answers using the current Fillout question names or ids for Reference 1 and Reference 2.
+
+The webhook:
+
+- Stores the Fillout submission id on the caregiver record.
+- Copies reference details onto the caregiver record.
+- Creates separate reference records for provided references.
+- Links references back to the caregiver.
+- Marks linked open `Follow Up Application` tasks as `Done`.
+- Creates a linked `Review Application` task when one does not already exist.
+- Returns `duplicate` without side effects when the caregiver already has the same submission id.
+
 ## Next Workflow Build
 
-The next backend workflow should add `/api/fillout-webhook` and preserve the current caregiver application baseline:
+The next backend workflow should validate `/api/fillout-webhook` with a safe test submission and then continue expanding caregiver operations:
 
-- Accept Fillout caregiver application submissions.
-- Use the Airtable caregiver record id from the submission.
-- Create separate Reference 1 and Reference 2 records when provided.
-- Link references back to the caregiver.
-- Complete the open `Follow Up Application` task.
-- Create a `Review Application` task if one does not already exist.
-- Prevent duplicate processing with the Fillout submission id.
-- Keep Airtable access in a small service layer.
-- Cover idempotency and task/reference behavior with tests.
+- Add a fixture or staging submission for end-to-end Airtable validation.
+- Add reference verification task creation when reference records are generated.
+- Add deployment notes after Vercel environment variables are configured.
